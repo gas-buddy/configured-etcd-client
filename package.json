@@ -22,15 +22,15 @@
   "author": "GasBuddy",
   "license": "MIT",
   "devDependencies": {
-    "babel-cli": "^6.4.5",
-    "babel-preset-gasbuddy": "^1",
+    "babel-cli": "^6.9.0",
+    "babel-preset-gasbuddy": "^2",
     "bluebird": "^3.2.1",
-    "eslint": "^3.1.0",
-    "eslint-config-gasbuddy": "^1",
+    "eslint-config-gasbuddy": "^4",
     "tap": "^8.0.0",
     "winston": "^2.3.0"
   },
   "dependencies": {
+    "microlock": "^1.0.2",
     "node-etcd": "^5.0.3"
   }
 }
