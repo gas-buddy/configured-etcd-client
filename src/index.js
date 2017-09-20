@@ -79,7 +79,7 @@ export default class EtcdClient extends EventEmitter {
     });
   }
 
-  async acquireLock(context, key) {
+  async acquireLock(context, key, timeout = 10) {
     const callInfo = {
       client: this,
       context,
@@ -87,7 +87,7 @@ export default class EtcdClient extends EventEmitter {
       method: 'acquireLock',
     };
     this.emit('start', callInfo);
-    const lock = new Lock(this.etcd, key, uuidv4(), 10);
+    const lock = new Lock(this.etcd, key, uuidv4(), timeout);
     let alerted = false;
     lock.once('unlock', () => {
       alerted = true;
@@ -115,5 +115,12 @@ export default class EtcdClient extends EventEmitter {
     }
     this.finishCall(callInfo, 'timeout');
     throw new Error('Timed out waiting for lock');
+  }
+
+  async releaseLock(lock) {
+    try {
+      await lock.unlock();
+      await lock.destroy();
+    } catch () {}
   }
 }
