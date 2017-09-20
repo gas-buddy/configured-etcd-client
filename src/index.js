@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import Etcd from 'node-etcd';
-import os from 'os';
+import uuidv4 from 'uuid/v4';
 import Lock, { AlreadyLockedError } from 'microlock';
 
 function statusCode(error) {
@@ -38,6 +38,7 @@ export default class EtcdClient extends EventEmitter {
       method: 'get',
     };
     this.emit('start', callInfo);
+
     return new Promise((accept, reject) => {
       this.etcd.get(key, (error, value) => {
         this.finishCall(callInfo, statusCode(error));
@@ -46,7 +47,7 @@ export default class EtcdClient extends EventEmitter {
         } else if (error) {
           reject(error);
         }
-        accept(value ? value.node.value : null);
+        accept(value ? JSON.parse(value.node.value) : null);
       });
     });
   }
@@ -64,8 +65,10 @@ export default class EtcdClient extends EventEmitter {
       method: 'set',
     };
     this.emit('start', callInfo);
+
+    const stringValue = JSON.stringify(value);
     return new Promise((accept, reject) => {
-      this.etcd.set(key, value, { ttl }, (error) => {
+      this.etcd.set(key, stringValue, { ttl }, (error) => {
         this.finishCall(callInfo, statusCode(error));
         if (error) {
           reject(error);
@@ -76,17 +79,6 @@ export default class EtcdClient extends EventEmitter {
     });
   }
 
-  parseValue(v) {
-    if (v && v[0] === '[') {
-      try {
-        return JSON.parse(v);
-      } catch (error) {
-        // Do nothing, fall through
-      }
-    }
-    return [];
-  }
-
   async acquireLock(context, key) {
     const callInfo = {
       client: this,
@@ -95,7 +87,7 @@ export default class EtcdClient extends EventEmitter {
       method: 'acquireLock',
     };
     this.emit('start', callInfo);
-    const lock = new Lock(this.etcd, key, os.hostname(), 10);
+    const lock = new Lock(this.etcd, key, uuidv4(), 10);
     let alerted = false;
     lock.once('unlock', () => {
       alerted = true;

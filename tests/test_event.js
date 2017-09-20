@@ -30,10 +30,11 @@ tap.test('test_set_event', async (t) => {
     t.equal(info.key, keyName);
     t.equal(info.method, 'set');
   });
+
   client.addListener('finish', (info) => {
     t.equal(info.key, keyName);
     t.equal(info.method, 'set');
   });
 
-  await client.set(context, keyName, 0, 60);
+  await client.set(context, keyName, { a: 1 }, 60);
 });
