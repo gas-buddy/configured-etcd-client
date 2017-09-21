@@ -117,10 +117,13 @@ export default class EtcdClient extends EventEmitter {
     throw new Error('Timed out waiting for lock');
   }
 
+  // eslint-disable-next-line class-methods-use-this
   async releaseLock(lock) {
     try {
       await lock.unlock();
       await lock.destroy();
-    } catch () {}
+    } catch (error) {
+      // Nothing to do for this error - eat it
+    }
   }
 }
