@@ -1,7 +1,7 @@
 box: node
 
 services:
-  - rabbitmq
+  - gasbuddy/etcd:2-single
 
 build:
   steps:
@@ -10,12 +10,6 @@ build:
     - script:
       name: lint
       code: npm run lint
-
-    - script:
-      name: environment vars
-      code: |
-        export RABBIT_HOST=$RABBITMQ_PORT_5672_TCP_ADDR
-        export RABBIT_PORT=$RABBITMQ_PORT_5672_TCP_PORT
 
     - npm-test
 
