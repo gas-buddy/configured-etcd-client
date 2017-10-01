@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import Etcd from 'node-etcd';
 import uuidv4 from 'uuid/v4';
+import bluebird from 'bluebird';
 import Lock, { AlreadyLockedError } from 'microlock';
 
 function statusCode(error) {
@@ -79,6 +80,27 @@ export default class EtcdClient extends EventEmitter {
     });
   }
 
+  async del(context, key) {
+    const callInfo = {
+      client: this,
+      context,
+      key,
+      method: 'del',
+    };
+    this.emit('start', callInfo);
+
+    return new Promise((accept, reject) => {
+      this.etcd.del(key, (error) => {
+        this.finishCall(callInfo, statusCode(error));
+        if (error) {
+          reject(error);
+        } else {
+          accept();
+        }
+      });
+    });
+  }
+
   async acquireLock(context, key, timeout = 10) {
     const callInfo = {
       client: this,
@@ -106,7 +128,7 @@ export default class EtcdClient extends EventEmitter {
           throw error;
         }
         // eslint-disable-next-line no-await-in-loop
-        await Promise.delay(250 * attempt);
+        await bluebird.delay(250 * attempt);
         if (alerted) {
           this.finishCall(callInfo, 'wait-acq');
           return lock;
