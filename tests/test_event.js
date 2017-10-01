@@ -24,7 +24,7 @@ tap.test('test_get_event', async (t) => {
 
 tap.test('test_set_event', async (t) => {
   const context = { logger: winston };
-  const etcd = new EtcdClient(context{
+  const etcd = new EtcdClient(context, {
     hosts: [process.env.ETCD_URL || 'http://localhost:2379'],
   });
   const client = await etcd.start();
