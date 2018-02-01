@@ -154,7 +154,7 @@ export default class EtcdClient extends EventEmitter {
    * For example: when making a critical area idempotent.
    * Even if you think you need it consult #guild-server-devs first.
    */
-  async memoize(context, key, func, ttl = 60 * 5, timeout = 20) {
+  async memoize(context, key, func, ttl = 60 * 5, timeout = 10) {
     const callInfo = {
       client: this,
       context,
@@ -164,8 +164,11 @@ export default class EtcdClient extends EventEmitter {
 
     this.emit('start', callInfo);
 
+    const renewWait = (timeout / 2) * 1000;
     let lock;
     let value;
+    let lockRenewTimeout;
+    let lockRenewPromise;
     try {
       const lockKey = `${key}-lock`;
       const valueKey = `${key}-value`;
@@ -174,6 +177,18 @@ export default class EtcdClient extends EventEmitter {
         this.finishCall(callInfo, 'val-prelock');
       } else {
         lock = await this.acquireLock(context, lockKey, timeout);
+
+        const renewer = () => {
+          context.gb.logger.info('Renewing lock', { key: lockKey });
+          lockRenewPromise = lock.renew().then(() => {
+            if (lockRenewTimeout) {
+              lockRenewTimeout = setTimeout(renewer, renewWait);
+            }
+          });
+        };
+
+        lockRenewTimeout = setTimeout(renewer, renewWait);
+
         value = await this.get(context, valueKey);
         if (value) {
           this.finishCall(callInfo, 'val-postlock');
@@ -187,6 +202,11 @@ export default class EtcdClient extends EventEmitter {
       this.finishCall(callInfo, 'err');
       throw e;
     } finally {
+      if (lockRenewTimeout) {
+        clearTimeout(lockRenewTimeout);
+        lockRenewTimeout = null;
+        await lockRenewPromise;
+      }
       if (lock) {
         await this.releaseLock(lock);
       }
