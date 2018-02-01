@@ -23,10 +23,10 @@
   "license": "MIT",
   "devDependencies": {
     "babel-cli": "^6.9.0",
-    "babel-preset-gasbuddy": "^2",
+    "babel-preset-gasbuddy": "^3.1.0",
     "eslint-config-gasbuddy": "^4",
-    "tap": "^8.0.0",
-    "winston": "^2.3.0"
+    "tap": "^10.7.3",
+    "winston": "^2.4.0"
   },
   "dependencies": {
     "bluebird": "^3.2.1",

@@ -148,4 +148,50 @@ export default class EtcdClient extends EventEmitter {
       // Nothing to do for this error - eat it
     }
   }
+
+  /**
+   * This method is expensive. Please don't call it unless you need it.
+   * For example: when making a critical area idempotent.
+   * Even if you think you need it consult #guild-server-devs first.
+   */
+  async memoize(context, key, func, ttl = 60 * 5, timeout = 20) {
+    const callInfo = {
+      client: this,
+      context,
+      key,
+      method: 'memoize',
+    };
+
+    this.emit('start', callInfo);
+
+    let lock;
+    let value;
+    try {
+      const lockKey = `${key}-lock`;
+      const valueKey = `${key}-value`;
+      value = await this.get(context, valueKey);
+      if (value) {
+        this.finishCall(callInfo, 'val-prelock');
+      } else {
+        lock = await this.acquireLock(context, lockKey, timeout);
+        value = await this.get(context, valueKey);
+        if (value) {
+          this.finishCall(callInfo, 'val-postlock');
+        } else {
+          value = (await func()) || {};
+          await this.set(context, valueKey, value, ttl);
+          this.finishCall(callInfo, 'val-eval');
+        }
+      }
+    } catch (e) {
+      this.finishCall(callInfo, 'err');
+      throw e;
+    } finally {
+      if (lock) {
+        await this.releaseLock(lock);
+      }
+    }
+
+    return value;
+  }
 }
