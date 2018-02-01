@@ -177,22 +177,21 @@ export default class EtcdClient extends EventEmitter {
         this.finishCall(callInfo, 'val-prelock');
       } else {
         lock = await this.acquireLock(context, lockKey, timeout);
-
-        const renewer = () => {
-          context.gb.logger.info('Renewing lock', { key: lockKey });
-          lockRenewPromise = lock.renew().then(() => {
-            if (lockRenewTimeout) {
-              lockRenewTimeout = setTimeout(renewer, renewWait);
-            }
-          });
-        };
-
-        lockRenewTimeout = setTimeout(renewer, renewWait);
-
         value = await this.get(context, valueKey);
         if (value) {
           this.finishCall(callInfo, 'val-postlock');
         } else {
+          const renewer = () => {
+            context.gb.logger.info('Renewing lock', { key: lockKey });
+            lockRenewPromise = lock.renew().then(() => {
+              if (lockRenewTimeout) {
+                lockRenewTimeout = setTimeout(renewer, renewWait);
+              }
+            });
+          };
+
+          lockRenewTimeout = setTimeout(renewer, renewWait);
+
           value = (await func()) || {};
           await this.set(context, valueKey, value, ttl);
           this.finishCall(callInfo, 'val-eval');
