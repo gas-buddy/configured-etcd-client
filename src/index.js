@@ -11,6 +11,18 @@ function statusCode(error) {
   return 0;
 }
 
+function unpackJson(node, prefix = '', hash = {}) {
+  const { key, nodes, value } = node;
+  const keyPart = key.substring(prefix.length).replace(/^\//, '');
+  if (value) {
+    hash[keyPart] = JSON.parse(value);
+  } else {
+    hash[keyPart] = {};
+    nodes.forEach(subnode => unpackJson(subnode, key, hash[keyPart]));
+  }
+  return hash;
+}
+
 export default class EtcdClient extends EventEmitter {
   constructor(context, opts) {
     super();
@@ -48,7 +60,11 @@ export default class EtcdClient extends EventEmitter {
         } else if (error) {
           reject(error);
         }
-        accept(value ? JSON.parse(value.node.value) : null);
+        if (options && options.recurive) {
+          accept(value ? unpackJson(value.node) : null);
+        } else {
+          accept(value ? JSON.parse(value.node.value) : null);
+        }
       });
     });
   }
