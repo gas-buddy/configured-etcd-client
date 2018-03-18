@@ -60,7 +60,7 @@ export default class EtcdClient extends EventEmitter {
         } else if (error) {
           reject(error);
         }
-        if (options && options.recurive) {
+        if (options && options.recursive) {
           accept(value ? unpackJson(value.node) : null);
         } else {
           accept(value ? JSON.parse(value.node.value) : null);
