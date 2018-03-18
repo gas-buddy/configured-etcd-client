@@ -31,7 +31,7 @@ export default class EtcdClient extends EventEmitter {
     this.emit('finish', { status, ...callInfo });
   }
 
-  async get(context, key) {
+  async get(context, key, options = {}) {
     const callInfo = {
       client: this,
       context,
@@ -41,7 +41,7 @@ export default class EtcdClient extends EventEmitter {
     this.emit('start', callInfo);
 
     return new Promise((accept, reject) => {
-      this.etcd.get(key, (error, value) => {
+      this.etcd.get(key, options, (error, value) => {
         this.finishCall(callInfo, statusCode(error));
         if (error && error.errorCode === 100) {
           accept();

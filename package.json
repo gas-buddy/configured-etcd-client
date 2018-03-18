@@ -1,6 +1,6 @@
 {
   "name": "@gasbuddy/configured-etcd-client",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "A configuration driven etcd client",
   "main": "build/index.js",
   "scripts": {
@@ -23,15 +23,15 @@
   "license": "MIT",
   "devDependencies": {
     "babel-cli": "^6.9.0",
-    "babel-preset-gasbuddy": "^3.1.0",
-    "eslint-config-gasbuddy": "^4",
-    "tap": "^10.7.3",
-    "winston": "^2.4.0"
+    "babel-preset-gasbuddy": "^3.3.3",
+    "eslint-config-gasbuddy": "^4.1.0",
+    "tap": "^11.1.2",
+    "winston": "^2.4.1"
   },
   "dependencies": {
-    "bluebird": "^3.2.1",
+    "bluebird": "^3.5.1",
     "microlock": "^1.0.2",
     "node-etcd": "^5.0.3",
-    "uuid": "^3.1.0"
+    "uuid": "^3.2.1"
   }
 }
