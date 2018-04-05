@@ -209,7 +209,9 @@ export default class EtcdClient extends EventEmitter {
           lockRenewTimeout = setTimeout(renewer, renewWait);
 
           value = (await func()) || {};
-          await this.set(context, valueKey, value, ttl);
+          if (ttl !== 0) {
+            await this.set(context, valueKey, value, ttl);
+          }
           this.finishCall(callInfo, 'val-eval');
         }
       }
