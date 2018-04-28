@@ -32,7 +32,11 @@ export default class EtcdClient extends EventEmitter {
         hosts: hosts || '<default>',
       });
     }
-    this.etcd = new Etcd(hosts, options);
+    if (typeof hosts === 'string') {
+      this.etcd = new Etcd(hosts.split(','), options);
+    } else {
+      this.etcd = new Etcd(hosts, options);
+    }
   }
 
   async start() {
