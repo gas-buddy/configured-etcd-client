@@ -43,7 +43,29 @@ export default class EtcdClient extends EventEmitter {
     return this;
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  logInfo(type, callInfo) {
+    if (callInfo.context && callInfo.context.gb && callInfo.context.gb.logger) {
+      const logData = {
+        key: callInfo.key,
+        method: callInfo.method,
+        type,
+      };
+      if (callInfo.start) {
+        logData.dur = Date.now() - callInfo.start;
+      }
+      callInfo.context.gb.logger.info('etcd', logData);
+    }
+  }
+
+  startCall(callInfo) {
+    this.logInfo('start', callInfo);
+    callInfo.start = Date.now();
+    this.emit('start', callInfo);
+  }
+
   finishCall(callInfo, status) {
+    this.logInfo('finish', callInfo);
     this.emit('finish', { status, ...callInfo });
   }
 
@@ -54,7 +76,7 @@ export default class EtcdClient extends EventEmitter {
       key,
       method: 'get',
     };
-    this.emit('start', callInfo);
+    this.startCall(callInfo);
 
     return new Promise((accept, reject) => {
       this.etcd.get(key, options, (error, value) => {
@@ -85,7 +107,7 @@ export default class EtcdClient extends EventEmitter {
       ttl,
       method: 'set',
     };
-    this.emit('start', callInfo);
+    this.startCall(callInfo);
 
     const stringValue = JSON.stringify(value);
     return new Promise((accept, reject) => {
@@ -107,7 +129,7 @@ export default class EtcdClient extends EventEmitter {
       key,
       method: 'del',
     };
-    this.emit('start', callInfo);
+    this.startCall(callInfo);
 
     return new Promise((accept, reject) => {
       this.etcd.del(key, (error) => {
@@ -128,7 +150,7 @@ export default class EtcdClient extends EventEmitter {
       key,
       method: 'acquireLock',
     };
-    this.emit('start', callInfo);
+    this.startCall(callInfo);
     const lock = new Lock(this.etcd, key, uuidv4(), timeout);
     let alerted = false;
     lock.once('unlock', () => {
@@ -182,7 +204,7 @@ export default class EtcdClient extends EventEmitter {
       method: 'memoize',
     };
 
-    this.emit('start', callInfo);
+    this.startCall(callInfo);
 
     const renewWait = (timeout / 2) * 1000;
     let lock;
@@ -229,7 +251,11 @@ export default class EtcdClient extends EventEmitter {
         await lockRenewPromise;
       }
       if (lock) {
-        await this.releaseLock(lock);
+        try {
+          await this.releaseLock(lock);
+        } catch (e) {
+          context.gb.logger.warn('Lock release error', context.gb.wrapError(e));
+        }
       }
     }
 
