@@ -1,4 +1,4 @@
-box: node
+box: node:8
 
 services:
   - gasbuddy/etcd:2-single
