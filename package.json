@@ -1,6 +1,6 @@
 {
   "name": "@gasbuddy/configured-etcd-client",
-  "version": "2.6.2",
+  "version": "2.6.3",
   "description": "A configuration driven etcd client",
   "main": "build/index.js",
   "scripts": {
@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "bluebird": "^3.5.1",
-    "microlock": "^1.2.0",
+    "microlock": "^1.2.1",
     "node-etcd": "^5.0.3",
     "uuid": "^3.3.2"
   }
