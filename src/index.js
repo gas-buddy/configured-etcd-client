@@ -134,11 +134,13 @@ export default class EtcdClient extends EventEmitter {
     lock.once('unlock', () => {
       alerted = true;
     });
+    const startTime = Date.now();
     for (let attempt = 0; attempt < 5; attempt += 1) {
       try {
         // eslint-disable-next-line no-await-in-loop
         await lock.lock();
-        context.gb.logger.info('Acquired lock', { key });
+        const waitTime = Date.now() - startTime;
+        context.gb.logger.info('Acquired lock', { key, waitTime });
         this.finishCall(callInfo, 'acq');
         return lock;
       } catch (error) {
@@ -156,7 +158,8 @@ export default class EtcdClient extends EventEmitter {
       }
     }
     this.finishCall(callInfo, 'timeout');
-    throw new Error('Timed out waiting for lock');
+    const waitTime = Date.now() - startTime;
+    throw new Error('Timed out waiting for lock', { waitTime });
   }
 
   // eslint-disable-next-line class-methods-use-this
