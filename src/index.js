@@ -152,7 +152,7 @@ export default class EtcdClient extends EventEmitter {
           throw error;
         }
         // eslint-disable-next-line no-await-in-loop
-        await bluebird.delay(Math.min(250 * attempt);
+        await bluebird.delay(Math.min(2000, 250 * attempt));
         if (alerted) {
           this.finishCall(callInfo, 'wait-acq');
           return lock;
