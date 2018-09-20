@@ -121,7 +121,7 @@ export default class EtcdClient extends EventEmitter {
     });
   }
 
-  async acquireLock(context, key, timeout = 10) {
+  async acquireLock(context, key, timeout = 10, maxWait = 30) {
     const callInfo = {
       client: this,
       context,
@@ -135,7 +135,9 @@ export default class EtcdClient extends EventEmitter {
       alerted = true;
     });
     const startTime = Date.now();
-    for (let attempt = 0; attempt < 5; attempt += 1) {
+    let attempt = 0;
+    while (Date.now() - startTime < maxWait * 1000) {
+      attempt += 1;
       try {
         // eslint-disable-next-line no-await-in-loop
         await lock.lock();
@@ -150,7 +152,7 @@ export default class EtcdClient extends EventEmitter {
           throw error;
         }
         // eslint-disable-next-line no-await-in-loop
-        await bluebird.delay(250 * attempt);
+        await bluebird.delay(Math.min(2000, 250 * attempt));
         if (alerted) {
           this.finishCall(callInfo, 'wait-acq');
           return lock;
@@ -177,7 +179,7 @@ export default class EtcdClient extends EventEmitter {
    * For example: when making a critical area idempotent.
    * Even if you think you need it consult #guild-server-devs first.
    */
-  async memoize(context, key, func, ttl = 60 * 5, timeout = 10) {
+  async memoize(context, key, func, ttl = 60 * 5, timeout = 10, maxWait = 30) {
     const callInfo = {
       client: this,
       context,
@@ -199,7 +201,7 @@ export default class EtcdClient extends EventEmitter {
       if (value) {
         this.finishCall(callInfo, 'val-prelock');
       } else {
-        lock = await this.acquireLock(context, lockKey, timeout);
+        lock = await this.acquireLock(context, lockKey, timeout, maxWait);
         value = await this.get(context, valueKey);
         if (value) {
           this.finishCall(callInfo, 'val-postlock');
