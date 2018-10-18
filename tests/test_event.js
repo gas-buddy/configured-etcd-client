@@ -1,9 +1,8 @@
 import tap from 'tap';
-import winston from 'winston';
 import EtcdClient from '../src/index';
 
 tap.test('test_get_event', async (t) => {
-  const context = { logger: winston };
+  const context = { logger: console };
   const etcd = new EtcdClient(context, {
     hosts: [process.env.ETCD_URL || 'http://localhost:2379'],
   });
@@ -23,7 +22,7 @@ tap.test('test_get_event', async (t) => {
 });
 
 tap.test('test_set_event', async (t) => {
-  const context = { logger: winston };
+  const context = { logger: console };
   const etcd = new EtcdClient(context, {
     hosts: [process.env.ETCD_URL || 'http://localhost:2379'],
   });

@@ -1,10 +1,9 @@
 import tap from 'tap';
-import winston from 'winston';
 import uuidv4 from 'uuid/v4';
 import EtcdClient from '../src/index';
 
 tap.test('test_memoize', async (t) => {
-  const context = { logger: winston };
+  const context = { logger: console };
   context.gb = context;
   const etcd = new EtcdClient(context, {
     hosts: [process.env.ETCD_URL || 'http://localhost:2379'],

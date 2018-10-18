@@ -1,11 +1,11 @@
 {
   "name": "@gasbuddy/configured-etcd-client",
-  "version": "2.7.0",
+  "version": "3.0.0",
   "description": "A configuration driven etcd client",
   "main": "build/index.js",
   "scripts": {
-    "test": "tap --node-arg=-r --node-arg=babel-register tests/*.js",
-    "test-some": "tap --node-arg=-r --node-arg=babel-register",
+    "test": "tap --node-arg=-r --node-arg=@babel/register tests/*.js",
+    "test-some": "tap --node-arg=-r --node-arg=@babel/register",
     "cover": "nyc --reporter=lcov npm test",
     "lint": "eslint .",
     "build": "babel src --out-dir build",
@@ -22,16 +22,15 @@
   "author": "GasBuddy",
   "license": "MIT",
   "devDependencies": {
-    "babel-cli": "^6.9.0",
-    "babel-preset-gasbuddy": "^3.3.3",
-    "eslint-config-gasbuddy": "^4.1.0",
-    "tap": "^11.1.5",
-    "winston": "^2.4.3"
+    "@babel/cli": "^7.1.2",
+    "@babel/register": "^7.0.0",
+    "babel-preset-gasbuddy": "^4.1.1",
+    "eslint-config-gasbuddy": "^5.0.2",
+    "tap": "^12.0.1"
   },
   "dependencies": {
-    "bluebird": "^3.5.1",
     "microlock": "^1.2.1",
-    "node-etcd": "^5.0.3",
+    "node-etcd": "^7.0.0",
     "uuid": "^3.3.2"
   }
 }

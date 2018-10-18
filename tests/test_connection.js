@@ -1,11 +1,9 @@
 import tap from 'tap';
-import winston from 'winston';
-import Promise from 'bluebird';
 import EtcdClient from '../src/index';
 
 tap.test('test_connection', async (t) => {
-  const context = { gb: { logger: winston } };
-  const etcd = new EtcdClient({ logger: winston }, {
+  const context = { gb: { logger: console } };
+  const etcd = new EtcdClient({ logger: console }, {
     hosts: [process.env.ETCD_URL || 'http://localhost:2379'],
   });
   const client = await etcd.start();
@@ -19,7 +17,7 @@ tap.test('test_connection', async (t) => {
   t.strictEquals(await client.get(context, testKey), 'helloworld', 'Should get a key');
   await client.set(context, testKey, objValue, 1);
   t.same(await client.get(context, testKey), objValue, 'Should get a key with object value');
-  await Promise.delay(2000);
+  await new Promise(accept => setTimeout(accept, 2000));
   t.notOk(await client.get(context, testKey), 'TTL should work');
 
   await client.set(context, testKey, 'helloworld');
@@ -29,7 +27,7 @@ tap.test('test_connection', async (t) => {
   const lock1 = await client.acquireLock(context, lockKey);
   let lock2;
   const lockPromise = client.acquireLock(context, lockKey).then((l) => { lock2 = l; });
-  await Promise.delay(100);
+  await new Promise(accept => setTimeout(accept, 100));
   t.notOk(lock2, 'After acquiring lock1, lock2 should not fulfill');
   await etcd.releaseLock(lock1);
   await lockPromise;

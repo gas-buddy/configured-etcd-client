@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events';
 import Etcd from 'node-etcd';
 import uuidv4 from 'uuid/v4';
-import bluebird from 'bluebird';
 import Lock, { AlreadyLockedError } from 'microlock';
 
 function statusCode(error) {
@@ -21,6 +20,10 @@ function unpackJson(node, prefix = '', hash = {}) {
     nodes.forEach(subnode => unpackJson(subnode, key, hash[keyPart]));
   }
   return hash;
+}
+
+async function delay(ms) {
+  return new Promise(accept => setTimeout(accept, ms));
 }
 
 export default class EtcdClient extends EventEmitter {
@@ -152,7 +155,7 @@ export default class EtcdClient extends EventEmitter {
           throw error;
         }
         // eslint-disable-next-line no-await-in-loop
-        await bluebird.delay(Math.min(2000, 250 * attempt));
+        await delay(250 * attempt);
         if (alerted) {
           this.finishCall(callInfo, 'wait-acq');
           return lock;
