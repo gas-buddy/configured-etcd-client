@@ -164,7 +164,9 @@ export default class EtcdClient extends EventEmitter {
     }
     this.finishCall(callInfo, 'timeout');
     const waitTime = Date.now() - startTime;
-    throw new Error('Timed out waiting for lock', { waitTime });
+    const error = new Error('Timed out waiting for lock');
+    error.waitTime = waitTime;
+    throw error;
   }
 
   // eslint-disable-next-line class-methods-use-this
