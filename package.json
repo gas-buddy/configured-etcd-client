@@ -24,9 +24,10 @@
   "devDependencies": {
     "@babel/cli": "^7.4.4",
     "@babel/register": "^7.4.4",
-    "babel-preset-gasbuddy": "^4.2.0",
+    "babel-preset-gasbuddy": "^5.6.0",
     "eslint-config-gasbuddy": "^5.3.0",
-    "tap": "^12.7.0"
+    "pino": "^5.12.6",
+    "tap": "^14.2.3"
   },
   "dependencies": {
     "microlock": "^1.2.1",

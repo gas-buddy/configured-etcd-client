@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import assert from 'assert';
 import Etcd from 'node-etcd';
 import uuidv4 from 'uuid/v4';
 import Lock, { AlreadyLockedError } from 'microlock';
@@ -9,6 +10,8 @@ function statusCode(error) {
   }
   return 0;
 }
+
+const LOGGER = Symbol('Logger property for locks');
 
 function unpackJson(node, prefix = '', hash = {}) {
   const { key, nodes, value } = node;
@@ -30,15 +33,21 @@ export default class EtcdClient extends EventEmitter {
   constructor(context, opts) {
     super();
     const { hosts, options } = (opts || {});
-    if (context && context.logger && context.logger.info) {
-      context.logger.info('Initializing etcd client', {
-        hosts: hosts || '<default>',
-      });
-    }
+    this.baseLogger = context.logger || context.gb?.logger;
+    assert(this.baseLogger?.info, 'Constructor must have a logger property');
+    context.logger.info('Initializing etcd client', {
+      hosts: hosts || '<default>',
+    });
+    const finalOptions = {
+      timeout: 1500,
+      ...options,
+    };
+    this.maxRetries = (options && 'maxRetries' in options) ? options.maxRetries : 2;
+
     if (typeof hosts === 'string') {
-      this.etcd = new Etcd(hosts.split(','), options);
+      this.etcd = new Etcd(hosts.split(','), finalOptions);
     } else {
-      this.etcd = new Etcd(hosts, options);
+      this.etcd = new Etcd(hosts, finalOptions);
     }
   }
 
@@ -50,18 +59,31 @@ export default class EtcdClient extends EventEmitter {
     this.emit('finish', { status, ...callInfo });
   }
 
-  async get(context, key, options = {}) {
+  getOptions(baseOptions) {
+    if (!baseOptions) {
+      return { maxRetries: this.maxRetries };
+    }
+    return {
+      maxRetries: this.maxRetries,
+      ...baseOptions,
+    };
+  }
+
+  async get(context, key, options) {
     const callInfo = {
       client: this,
       context,
       key,
       method: 'get',
     };
+    const logger = context.gb?.logger || this.baseLogger;
+    logger.info('etcd get', { key });
     this.emit('start', callInfo);
 
     return new Promise((accept, reject) => {
-      this.etcd.get(key, options, (error, value) => {
+      this.etcd.get(key, this.getOptions(options), (error, value) => {
         this.finishCall(callInfo, statusCode(error));
+        logger.info('etcd got', { key, ok: !error });
         if (error && error.errorCode === 100) {
           accept();
         } else if (error) {
@@ -79,21 +101,25 @@ export default class EtcdClient extends EventEmitter {
   /**
    * ttl is in seconds
    */
-  async set(context, key, value, ttl) {
+  async set(context, key, value, ttlOrOptions) {
+    const options = (ttlOrOptions && typeof ttlOrOptions !== 'object') ? { ttl: ttlOrOptions } : ttlOrOptions;
     const callInfo = {
       client: this,
       context,
       key,
       value,
-      ttl,
+      ttl: options?.ttl,
       method: 'set',
     };
+    const logger = context.gb?.logger || this.baseLogger;
+    logger.info('etcd set', { key });
     this.emit('start', callInfo);
 
     const stringValue = JSON.stringify(value);
     return new Promise((accept, reject) => {
-      this.etcd.set(key, stringValue, { ttl }, (error) => {
+      this.etcd.set(key, stringValue, this.getOptions(options), (error) => {
         this.finishCall(callInfo, statusCode(error));
+        logger.info('etcd was set', { key });
         if (error) {
           reject(error);
         } else {
@@ -103,18 +129,21 @@ export default class EtcdClient extends EventEmitter {
     });
   }
 
-  async del(context, key) {
+  async del(context, key, options) {
     const callInfo = {
       client: this,
       context,
       key,
       method: 'del',
     };
+    const logger = context.gb?.logger || this.baseLogger;
+    logger.info('etcd del', { key });
     this.emit('start', callInfo);
 
     return new Promise((accept, reject) => {
-      this.etcd.del(key, (error) => {
+      this.etcd.del(key, this.getOptions(options), (error) => {
         this.finishCall(callInfo, statusCode(error));
+        logger.info('etcd deleted', { key });
         if (error) {
           reject(error);
         } else {
@@ -131,8 +160,11 @@ export default class EtcdClient extends EventEmitter {
       key,
       method: 'acquireLock',
     };
+    const logger = context.gb?.logger || this.baseLogger;
+    logger.info('etcd acquire', { key });
     this.emit('start', callInfo);
     const lock = new Lock(this.etcd, key, uuidv4(), timeout);
+    lock[LOGGER] = { logger, key };
     let alerted = false;
     lock.once('unlock', () => {
       alerted = true;
@@ -145,11 +177,11 @@ export default class EtcdClient extends EventEmitter {
         // eslint-disable-next-line no-await-in-loop
         await lock.lock();
         const waitTime = Date.now() - startTime;
-        context.gb.logger.info('Acquired lock', { key, waitTime });
+        logger.info('Acquired lock', { key, waitTime });
         this.finishCall(callInfo, 'acq');
         return lock;
       } catch (error) {
-        context.gb.logger.warn('Lock contention', { key, attempt });
+        logger.warn('Lock contention', { key, attempt });
         if (!(error instanceof AlreadyLockedError)) {
           this.finishCall(callInfo, 'err');
           throw error;
@@ -172,8 +204,13 @@ export default class EtcdClient extends EventEmitter {
   // eslint-disable-next-line class-methods-use-this
   async releaseLock(lock) {
     try {
+      const { key, logger } = lock[LOGGER] || {};
       await lock.unlock();
       await lock.destroy();
+      if (logger) {
+        logger.info('Lock released', { key });
+        delete lock[LOGGER];
+      }
     } catch (error) {
       // Nothing to do for this error - eat it
     }
@@ -192,6 +229,8 @@ export default class EtcdClient extends EventEmitter {
       method: 'memoize',
     };
 
+    const logger = context.gb?.logger || this.baseLogger;
+    logger.info('etcd memoize', { key });
     this.emit('start', callInfo);
 
     const renewWait = (timeout / 2) * 1000;
@@ -212,7 +251,7 @@ export default class EtcdClient extends EventEmitter {
           this.finishCall(callInfo, 'val-postlock');
         } else {
           const renewer = () => {
-            context.gb.logger.info('Renewing lock', { key: lockKey });
+            logger.info('Renewing lock', { key: lockKey });
             lockRenewPromise = lock.renew().then(() => {
               if (lockRenewTimeout) {
                 lockRenewTimeout = setTimeout(renewer, renewWait);
