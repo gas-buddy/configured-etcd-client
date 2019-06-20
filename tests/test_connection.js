@@ -1,9 +1,12 @@
 import tap from 'tap';
+import pino from 'pino';
 import EtcdClient from '../src/index';
 
+const logger = pino();
+const context = { logger, gb: { logger } };
+
 tap.test('test_connection', async (t) => {
-  const context = { gb: { logger: console } };
-  const etcd = new EtcdClient({ logger: console }, {
+  const etcd = new EtcdClient({ logger }, {
     hosts: [process.env.ETCD_URL || 'http://localhost:2379'],
   });
   const client = await etcd.start();
