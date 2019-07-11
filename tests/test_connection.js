@@ -4,6 +4,17 @@ import EtcdClient from '../src/index';
 
 const logger = pino();
 const context = { logger, gb: { logger } };
+function mkdir(client, dir) {
+  return new Promise((resolve, reject) => {
+    client.etcd.mkdir(dir, (err, res) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(res);
+    });
+  });
+}
 
 tap.test('test_connection', async (t) => {
   const etcd = new EtcdClient({ logger }, {
@@ -12,10 +23,13 @@ tap.test('test_connection', async (t) => {
   const client = await etcd.start();
 
   const testKey = `test-key-${Date.now()}`;
+  const emptyDir = `/empty-dir-${Date.now()}`;
   const lockKey = `lock-key-${Date.now()}`;
 
   const objValue = { a: true, b: 3, c: 'four', d: [1, 2, 3] };
   t.notOk(await client.get(context, testKey), 'Should start with no value');
+  await mkdir(client, emptyDir);
+  await client.get(context, emptyDir, { recursive: true });
   await client.set(context, testKey, 'helloworld', 1);
   t.strictEquals(await client.get(context, testKey), 'helloworld', 'Should get a key');
   await client.set(context, testKey, objValue, 1);
