@@ -1,6 +1,6 @@
 {
   "name": "@gasbuddy/configured-etcd-client",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "A configuration driven etcd client",
   "main": "build/index.js",
   "scripts": {
