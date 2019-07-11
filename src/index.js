@@ -14,7 +14,7 @@ function statusCode(error) {
 const LOGGER = Symbol('Logger property for locks');
 
 function unpackJson(node, prefix = '', hash = {}) {
-  const { key, nodes, value } = node;
+  const { key, nodes = [], value } = node;
   const keyPart = key.substring(prefix.length).replace(/^\//, '');
   if (value) {
     hash[keyPart] = JSON.parse(value);
